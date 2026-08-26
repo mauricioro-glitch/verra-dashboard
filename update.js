@@ -1,27 +1,19 @@
 import crypto from "crypto";
 
-const URLS = {
-  projects:
-    "https://prod-us.api.platts.com/ci-raas-prod/raas-report-api/es/public/project/publicReportPageSearch",
+const URL =
+  "https://prod-us.api.platts.com/ci-raas-prod/raas-report-api/es/public/retirements/publicReportPageSearch";
 
-  issuances:
-    "https://prod-us.api.platts.com/ci-raas-prod/raas-report-api/es/public/issuances/publicReportPageSearch",
-
-  retirements:
-    "https://prod-us.api.platts.com/ci-raas-prod/raas-report-api/es/public/retirements/publicReportPageSearch"
-};
-
-async function test(url, sortField) {
+async function test(limit) {
 
   const payload = {
     searchFilter: {
       pagination: {
         start: 0,
-        limit: 1,
+        limit,
         sortOptions: [
           {
-            sort: sortField,
-            dir: "ASC"
+            sort: "retiredDate",
+            dir: "DESC"
           }
         ]
       },
@@ -29,7 +21,7 @@ async function test(url, sortField) {
     }
   };
 
-  const response = await fetch(url, {
+  const response = await fetch(URL, {
     method: "POST",
     headers: {
       accept: "application/json",
@@ -50,24 +42,13 @@ async function test(url, sortField) {
 
   const json = await response.json();
 
-  return {
-    totalEntities: json.totalEntities,
-    totalPages: json.totalPages,
-    limit: json.limit
-  };
+  console.log(
+    `LIMIT ${limit}: returned ${json.numberOfElements}`
+  );
 }
 
-console.log(
-  "PROJECTS",
-  await test(URLS.projects, "projectName.keyword")
-);
-
-console.log(
-  "ISSUANCES",
-  await test(URLS.issuances, "issueDate")
-);
-
-console.log(
-  "RETIREMENTS",
-  await test(URLS.retirements, "retiredDate")
-);
+await test(50);
+await test(100);
+await test(250);
+await test(500);
+await test(1000);
