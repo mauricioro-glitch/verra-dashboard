@@ -1,9 +1,10 @@
 import crypto from "crypto";
 
 const URL =
-  "https://prod-us.api.platts.com/ci-raas-prod/raas-report-api/es/public/retirements/publicReportPageSearch";
+  "https://prod-us.api.platts.com/ci-raas-prod/raas-report-api/es/public/project/publicReportPageSearch";
 
-async function fetchPage(start = 0, limit = 50) {
+async function fetchPage(start = 0, limit = 1) {
+
   const payload = {
     searchFilter: {
       pagination: {
@@ -11,8 +12,8 @@ async function fetchPage(start = 0, limit = 50) {
         limit,
         sortOptions: [
           {
-            sort: "retiredDate",
-            dir: "DESC"
+            sort: "projectName.keyword",
+            dir: "ASC"
           }
         ]
       },
@@ -39,12 +40,20 @@ async function fetchPage(start = 0, limit = 50) {
     body: JSON.stringify(payload)
   });
 
-  return await response.json();
+  const json = await response.json();
+
+  console.log("STATUS:", response.status);
+  console.log("TOP LEVEL KEYS:");
+  console.log(Object.keys(json));
+
+  console.log("FIRST RECORD:");
+  console.log(
+    JSON.stringify(
+      json.entities?.[0] || json.content?.[0] || json,
+      null,
+      2
+    ).substring(0, 15000)
+  );
 }
 
-const result = await fetchPage();
-
-console.log("TOTAL ENTITIES:", result.totalEntities);
-console.log("TOTAL PAGES:", result.totalPages);
-console.log("LIMIT:", result.limit);
-console.log("NUMBER OF ELEMENTS:", result.numberOfElements);
+fetchPage();
