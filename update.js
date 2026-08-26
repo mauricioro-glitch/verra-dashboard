@@ -1,15 +1,9 @@
 import crypto from "crypto";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY
-);
 
 const URL =
   "https://prod-us.api.platts.com/ci-raas-prod/raas-report-api/es/public/retirements/publicReportPageSearch";
 
-async function fetchPage(start = 0, limit = 5) {
+async function fetchPage(start = 0, limit = 50) {
   const payload = {
     searchFilter: {
       pagination: {
@@ -45,66 +39,12 @@ async function fetchPage(start = 0, limit = 5) {
     body: JSON.stringify(payload)
   });
 
-  if (!response.ok) {
-    throw new Error(
-      `HTTP ${response.status}: ${await response.text()}`
-    );
-  }
-
   return await response.json();
 }
 
-async function main() {
+const result = await fetchPage();
 
-  console.log("=================================");
-  console.log("VERIFICATION TEST");
-  console.log("=================================");
-
-  const result = await fetchPage(0, 5);
-
-  console.log(
-    `Records returned: ${result.numberOfElements}`
-  );
-
-  const rows = result.entities.map(r => ({
-    id: r.id,
-    project_id: r.projectId,
-    project_name: r.projectName,
-    retired_date: r.retiredDate,
-    vintage: r.vintage,
-    quantity: r.holdingQuantity,
-    beneficial_owner: r.beneficialOwner,
-    retirement_reason: r.retirementReason,
-    methodology: r.methodologies,
-    country: r.countryName,
-    region: r.regionName,
-    serial_number: r.serialNo,
-    raw: r
-  }));
-
-  console.log(
-    `Preparing upload of ${rows.length} rows`
-  );
-
-  const { error } =
-    await supabase
-      .from("retirements")
-      .upsert(rows);
-
-  if (error) {
-    console.error("SUPABASE ERROR:");
-    console.error(error);
-    throw error;
-  }
-
-  console.log("=================================");
-  console.log("SUCCESS");
-  console.log("Rows inserted successfully");
-  console.log("=================================");
-}
-
-main().catch(err => {
-  console.error("FATAL ERROR");
-  console.error(err);
-  process.exit(1);
-});
+console.log("TOTAL ENTITIES:", result.totalEntities);
+console.log("TOTAL PAGES:", result.totalPages);
+console.log("LIMIT:", result.limit);
+console.log("NUMBER OF ELEMENTS:", result.numberOfElements);
