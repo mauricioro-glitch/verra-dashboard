@@ -20,7 +20,17 @@ const HEADERS = {
   referer: "https://registry.verra.org/"
 };
 
-async function fetchPage(url, sortField, start, limit = 1000) {
+async function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchPage(
+  url,
+  sortField,
+  start,
+  limit = 1000
+) {
+
   const payload = {
     searchFilter: {
       pagination: {
@@ -37,21 +47,54 @@ async function fetchPage(url, sortField, start, limit = 1000) {
     }
   };
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      ...HEADERS,
-      "x-request-id": crypto.randomUUID()
-    },
-    body: JSON.stringify(payload)
-  });
+  let attempt = 1;
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`HTTP ${response.status}: ${text}`);
+  while (attempt <= 5) {
+
+    try {
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          ...HEADERS,
+          "x-request-id": crypto.randomUUID()
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        return await response.json();
+      }
+
+      const text = await response.text();
+
+      console.log(
+        `Attempt ${attempt} failed (${response.status})`
+      );
+
+      console.log(text);
+
+    } catch (err) {
+
+      console.log(
+        `Attempt ${attempt} exception`
+      );
+
+      console.log(err);
+    }
+
+    attempt++;
+
+    console.log(
+      "Waiting 10 seconds..."
+    );
+
+    await sleep(10000);
   }
 
-  return await response.json();
+  throw new Error(
+    `Failed after 5 attempts`
+  );
 }
 
 async function loadProjects() {
@@ -68,10 +111,14 @@ async function loadProjects() {
       0
     );
 
-  console.log(`Projects: ${first.totalEntities}`);
+  console.log(
+    `Projects: ${first.totalEntities}`
+  );
 
   const pages =
-    Math.ceil(first.totalEntities / 1000);
+    Math.ceil(
+      first.totalEntities / 1000
+    );
 
   for (let page = 0; page < pages; page++) {
 
@@ -90,7 +137,8 @@ async function loadProjects() {
             start
           );
 
-    const uniqueProjects = new Map();
+    const uniqueProjects =
+      new Map();
 
     for (const p of data.entities) {
 
@@ -106,7 +154,8 @@ async function loadProjects() {
           methodologies: p.methodologies,
           validator_name: p.validatorName,
           proponents: p.proponents,
-          avg_annual_vol_vcu: p.avgAnnualVolVcu,
+          avg_annual_vol_vcu:
+            p.avgAnnualVolVcu,
           project_size: p.projectSize,
           latitude: p.latitude,
           longitude: p.longitude,
@@ -134,10 +183,9 @@ async function loadProjects() {
           }
         );
 
-    if (error) {
-      console.error(error);
-      throw error;
-    }
+    if (error) throw error;
+
+    await sleep(2000);
   }
 }
 
@@ -207,10 +255,9 @@ async function loadIssuances() {
           }
         );
 
-    if (error) {
-      console.error(error);
-      throw error;
-    }
+    if (error) throw error;
+
+    await sleep(2000);
   }
 }
 
@@ -262,8 +309,10 @@ async function loadRetirements() {
         retired_date: r.retiredDate,
         vintage: r.vintage,
         quantity: r.holdingQuantity,
-        beneficial_owner: r.beneficialOwner,
-        retirement_reason: r.retirementReason,
+        beneficial_owner:
+          r.beneficialOwner,
+        retirement_reason:
+          r.retirementReason,
         methodology: r.methodologies,
         country: r.countryName,
         region: r.regionName,
@@ -281,10 +330,9 @@ async function loadRetirements() {
           }
         );
 
-    if (error) {
-      console.error(error);
-      throw error;
-    }
+    if (error) throw error;
+
+    await sleep(2000);
   }
 }
 
@@ -293,19 +341,27 @@ async function main() {
   console.log("START");
 
   await loadProjects();
-  console.log("PROJECTS COMPLETE");
+  console.log(
+    "PROJECTS COMPLETE"
+  );
 
   await loadIssuances();
-  console.log("ISSUANCES COMPLETE");
+  console.log(
+    "ISSUANCES COMPLETE"
+  );
 
   await loadRetirements();
-  console.log("RETIREMENTS COMPLETE");
+  console.log(
+    "RETIREMENTS COMPLETE"
+  );
 
   console.log("FINISHED");
 }
 
 main().catch(err => {
-  console.error("FATAL ERROR");
+  console.error(
+    "FATAL ERROR"
+  );
   console.error(err);
   process.exit(1);
 });
