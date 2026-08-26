@@ -14,12 +14,14 @@ const HEADERS = {
   referer: "https://registry.verra.org/"
 };
 
-async function test(start) {
+const URL =
+  "https://prod-us.api.platts.com/ci-raas-prod/raas-report-api/es/public/retirements/publicReportPageSearch";
+
+async function getPage(searchAfter = null, pitId = null) {
 
   const payload = {
     searchFilter: {
       pagination: {
-        start,
         limit: 5,
         sortOptions: [
           {
@@ -32,8 +34,18 @@ async function test(start) {
     }
   };
 
+  if (searchAfter) {
+    payload.searchFilter.pagination.searchAfter =
+      searchAfter;
+  }
+
+  if (pitId) {
+    payload.searchFilter.pagination.pitId =
+      pitId;
+  }
+
   const response = await fetch(
-    "https://prod-us.api.platts.com/ci-raas-prod/raas-report-api/es/public/retirements/publicReportPageSearch",
+    URL,
     {
       method: "POST",
       headers: {
@@ -44,20 +56,35 @@ async function test(start) {
     }
   );
 
-  const data = await response.json();
-
-  console.log("");
-  console.log("START =", start);
-
-  data.entities.forEach(r => {
-    console.log(
-      r.id,
-      r.retiredDate
-    );
-  });
+  return await response.json();
 }
 
-await test(0);
-await test(5);
-await test(10);
-await test(15);
+console.log("PAGE 1");
+
+const page1 =
+  await getPage();
+
+page1.entities.forEach(r =>
+  console.log(r.id, r.retiredDate)
+);
+
+console.log("");
+console.log("searchAfter:");
+console.log(page1.searchAfter);
+
+console.log("");
+console.log("pitId:");
+console.log(page1.pitId);
+
+console.log("");
+console.log("PAGE 2");
+
+const page2 =
+  await getPage(
+    page1.searchAfter,
+    page1.pitId
+  );
+
+page2.entities.forEach(r =>
+  console.log(r.id, r.retiredDate)
+);
