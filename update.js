@@ -1,7 +1,7 @@
 import crypto from "crypto";
 
 const URL =
-  "https://prod-us.api.platts.com/ci-raas-prod/raas-report-api/es/public/project/publicReportPageSearch";
+  "https://prod-us.api.platts.com/ci-raas-prod/raas-report-api/es/public/issuances/publicReportPageSearch";
 
 async function fetchPage(start = 0, limit = 1) {
 
