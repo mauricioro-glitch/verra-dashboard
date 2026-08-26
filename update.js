@@ -21,7 +21,6 @@ const HEADERS = {
 };
 
 async function fetchPage(url, sortField, start, limit = 1000) {
-
   const payload = {
     searchFilter: {
       pagination: {
@@ -48,9 +47,8 @@ async function fetchPage(url, sortField, start, limit = 1000) {
   });
 
   if (!response.ok) {
-    throw new Error(
-      `HTTP ${response.status}`
-    );
+    const text = await response.text();
+    throw new Error(`HTTP ${response.status}: ${text}`);
   }
 
   return await response.json();
@@ -70,14 +68,10 @@ async function loadProjects() {
       0
     );
 
-  console.log(
-    `Projects: ${first.totalEntities}`
-  );
+  console.log(`Projects: ${first.totalEntities}`);
 
   const pages =
-    Math.ceil(
-      first.totalEntities / 1000
-    );
+    Math.ceil(first.totalEntities / 1000);
 
   for (let page = 0; page < pages; page++) {
 
@@ -96,30 +90,54 @@ async function loadProjects() {
             start
           );
 
+    const uniqueProjects = new Map();
+
+    for (const p of data.entities) {
+
+      uniqueProjects.set(
+        p.projectId,
+        {
+          project_id: p.projectId,
+          project_name: p.projectName,
+          status: p.status,
+          country: p.countryName,
+          region: p.regionName,
+          sectoral_scope: p.sectoralScope,
+          methodologies: p.methodologies,
+          validator_name: p.validatorName,
+          proponents: p.proponents,
+          avg_annual_vol_vcu: p.avgAnnualVolVcu,
+          project_size: p.projectSize,
+          latitude: p.latitude,
+          longitude: p.longitude,
+          raw: p
+        }
+      );
+    }
+
     const rows =
-      data.entities.map(p => ({
-        project_id: p.projectId,
-        project_name: p.projectName,
-        status: p.status,
-        country: p.countryName,
-        region: p.regionName,
-        sectoral_scope: p.sectoralScope,
-        methodologies: p.methodologies,
-        validator_name: p.validatorName,
-        proponents: p.proponents,
-        avg_annual_vol_vcu: p.avgAnnualVolVcu,
-        project_size: p.projectSize,
-        latitude: p.latitude,
-        longitude: p.longitude,
-        raw: p
-      }));
+      Array.from(
+        uniqueProjects.values()
+      );
+
+    console.log(
+      `Unique projects: ${rows.length}`
+    );
 
     const { error } =
       await supabase
         .from("projects")
-        .upsert(rows);
+        .upsert(
+          rows,
+          {
+            onConflict: "project_id"
+          }
+        );
 
-    if (error) throw error;
+    if (error) {
+      console.error(error);
+      throw error;
+    }
   }
 }
 
@@ -165,7 +183,7 @@ async function loadIssuances() {
 
     const rows =
       data.entities.map(r => ({
-        id: r.id,
+        id: String(r.id),
         project_id: r.projectId,
         project_name: r.projectName,
         vintage: r.vintage,
@@ -182,9 +200,17 @@ async function loadIssuances() {
     const { error } =
       await supabase
         .from("issuances")
-        .upsert(rows);
+        .upsert(
+          rows,
+          {
+            onConflict: "id"
+          }
+        );
 
-    if (error) throw error;
+    if (error) {
+      console.error(error);
+      throw error;
+    }
   }
 }
 
@@ -230,7 +256,7 @@ async function loadRetirements() {
 
     const rows =
       data.entities.map(r => ({
-        id: r.id,
+        id: String(r.id),
         project_id: r.projectId,
         project_name: r.projectName,
         retired_date: r.retiredDate,
@@ -248,9 +274,17 @@ async function loadRetirements() {
     const { error } =
       await supabase
         .from("retirements")
-        .upsert(rows);
+        .upsert(
+          rows,
+          {
+            onConflict: "id"
+          }
+        );
 
-    if (error) throw error;
+    if (error) {
+      console.error(error);
+      throw error;
+    }
   }
 }
 
@@ -259,13 +293,19 @@ async function main() {
   console.log("START");
 
   await loadProjects();
+  console.log("PROJECTS COMPLETE");
+
   await loadIssuances();
+  console.log("ISSUANCES COMPLETE");
+
   await loadRetirements();
+  console.log("RETIREMENTS COMPLETE");
 
   console.log("FINISHED");
 }
 
 main().catch(err => {
+  console.error("FATAL ERROR");
   console.error(err);
   process.exit(1);
 });
