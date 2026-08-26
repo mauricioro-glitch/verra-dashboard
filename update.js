@@ -1,18 +1,26 @@
 import crypto from "crypto";
 
-const URL =
-  "https://prod-us.api.platts.com/ci-raas-prod/raas-report-api/es/public/issuances/publicReportPageSearch";
+const URLS = {
+  projects:
+    "https://prod-us.api.platts.com/ci-raas-prod/raas-report-api/es/public/project/publicReportPageSearch",
 
-async function fetchPage(start = 0, limit = 1) {
+  issuances:
+    "https://prod-us.api.platts.com/ci-raas-prod/raas-report-api/es/public/issuances/publicReportPageSearch",
+
+  retirements:
+    "https://prod-us.api.platts.com/ci-raas-prod/raas-report-api/es/public/retirements/publicReportPageSearch"
+};
+
+async function test(url, sortField) {
 
   const payload = {
     searchFilter: {
       pagination: {
-        start,
-        limit,
+        start: 0,
+        limit: 1,
         sortOptions: [
           {
-            sort: "projectName.keyword",
+            sort: sortField,
             dir: "ASC"
           }
         ]
@@ -21,7 +29,7 @@ async function fetchPage(start = 0, limit = 1) {
     }
   };
 
-  const response = await fetch(URL, {
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       accept: "application/json",
@@ -42,18 +50,24 @@ async function fetchPage(start = 0, limit = 1) {
 
   const json = await response.json();
 
-  console.log("STATUS:", response.status);
-  console.log("TOP LEVEL KEYS:");
-  console.log(Object.keys(json));
-
-  console.log("FIRST RECORD:");
-  console.log(
-    JSON.stringify(
-      json.entities?.[0] || json.content?.[0] || json,
-      null,
-      2
-    ).substring(0, 15000)
-  );
+  return {
+    totalEntities: json.totalEntities,
+    totalPages: json.totalPages,
+    limit: json.limit
+  };
 }
 
-fetchPage();
+console.log(
+  "PROJECTS",
+  await test(URLS.projects, "projectName.keyword")
+);
+
+console.log(
+  "ISSUANCES",
+  await test(URLS.issuances, "issueDate")
+);
+
+console.log(
+  "RETIREMENTS",
+  await test(URLS.retirements, "retiredDate")
+);
